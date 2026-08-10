@@ -231,10 +231,10 @@ function criarCardTreino(treino) {
     linhaRefazer.className = 'linha-refazer';
     const btnRefazer = document.createElement('button');
     btnRefazer.className = 'btn-refazer';
-    btnRefazer.textContent = 'Refazer treino';
+    btnRefazer.textContent = 'ZERAR TREINO';
     btnRefazer.addEventListener('click', (e) => {
       e.stopPropagation();
-      confirmar(`Refazer o ${treino.nome}? O progresso salvo será apagado.`, () => {
+      confirmar(`Zerar o ${treino.nome}? O progresso salvo será apagado.`, () => {
         delete dadosAluno.treinosFeitos[treino.nome];
         delete dadosAluno.seriesFeitas[treino.nome];
         salvarDadosAluno();
@@ -268,12 +268,16 @@ function criarCorpoTreino(treino) {
   const corpo = document.createElement('div');
   corpo.className = 'corpo-treino';
 
+  const feito = !!dadosAluno.treinosFeitos[treino.nome];
+
   if (!dadosAluno.seriesFeitas[treino.nome]) {
     dadosAluno.seriesFeitas[treino.nome] = {};
   }
   const seriesFeitas = dadosAluno.seriesFeitas[treino.nome];
 
   const validarEAtualizarBotao = () => {
+    if (feito) return; // Se já foi feito, não precisa validar botão de finalizar
+
     let totalMarcados = 0;
     Object.values(seriesFeitas).forEach(arr => {
       totalMarcados += arr.filter(Boolean).length;
@@ -288,6 +292,56 @@ function criarCorpoTreino(treino) {
       btnFinalizar.disabled = !(tempoValido && checkboxValido);
     }
   };
+
+// Cria o topo do treino com o botão azul de Play e o display do timer
+function criarTopoTimer(treino, aoAtualizarTimer) {
+  const timerRow = document.createElement('div');
+  timerRow.className = 'timer-row-topo';
+
+  const display = document.createElement('div');
+  display.className = 'timer-display';
+  display.textContent = '00:00';
+
+  const btnTimer = document.createElement('button');
+  btnTimer.className = 'btn-timer';
+  btnTimer.innerHTML = '&#9658;';
+  btnTimer.setAttribute('aria-label', 'Iniciar cronômetro');
+
+  timerRow.appendChild(display);
+  timerRow.appendChild(btnTimer);
+
+  if (!timers[treino.nome]) {
+    timers[treino.nome] = { segundos: 0, rodando: false, intervalo: null, iniciadoEm: null };
+  }
+  const estadoTimer = timers[treino.nome];
+  display.textContent = formatarTempo(estadoTimer.segundos);
+  btnTimer.innerHTML = estadoTimer.rodando ? '&#10074;&#10074;' : '&#9658;';
+
+  btnTimer.addEventListener('click', () => {
+    if (!estadoTimer.iniciadoEm) {
+      estadoTimer.iniciadoEm = new Date().toISOString();
+    }
+    estadoTimer.rodando = !estadoTimer.rodando;
+    btnTimer.innerHTML = estadoTimer.rodando ? '&#10074;&#10074;' : '&#9658;';
+
+    if (estadoTimer.rodando) {
+      estadoTimer.intervalo = setInterval(() => {
+        estadoTimer.segundos++;
+        display.textContent = formatarTempo(estadoTimer.segundos);
+        aoAtualizarTimer();
+      }, 1000);
+    } else {
+      clearInterval(estadoTimer.intervalo);
+    }
+  });
+
+  return timerRow;
+}
+
+  // Se o treino NÃO foi feito, adiciona o topo com o botão azul do play (timer)
+  if (!feito) {
+    corpo.appendChild(criarTopoTimer(treino, validarEAtualizarBotao));
+  }
 
   treino.exercicios.forEach(exTreino => {
     const info = buscarExercicio(exTreino.id);
@@ -344,9 +398,8 @@ function criarCorpoTreino(treino) {
       checkbox.checked = estadoSeries[idx];
 
       checkbox.addEventListener('click', (e) => {
-        // Se estava marcado e o usuário clicou para desmarcar
         if (!checkbox.checked) {
-          e.preventDefault(); // Interrompe a desmarcação automática
+          e.preventDefault();
           confirmar('Deseja desmarcar esta série?', () => {
             checkbox.checked = false;
             estadoSeries[idx] = false;
@@ -382,10 +435,41 @@ function criarCorpoTreino(treino) {
     corpo.appendChild(item);
   });
 
-  corpo.appendChild(criarBlocoTimerEFinalizar(treino, validarEAtualizarBotao));
-  
-  // Executa validação inicial ao renderizar
-  setTimeout(validarEAtualizarBotao, 0);
+// Cria o botão de Finalizar Treino no rodapé
+function criarBotaoFinalizar(treino) {
+  const botoesTreino = document.createElement('div');
+  botoesTreino.className = 'botoes-treino';
+
+  const btnFinalizar = document.createElement('button');
+  btnFinalizar.className = 'btn-finalizar';
+  btnFinalizar.textContent = 'Finalizar treino';
+  btnFinalizar.disabled = true;
+
+  btnFinalizar.addEventListener('click', () => {
+    const estadoTimer = timers[treino.nome] || { segundos: 0 };
+    if (estadoTimer.intervalo) clearInterval(estadoTimer.intervalo);
+
+    dadosAluno.treinosFeitos[treino.nome] = {
+      iniciadoEm: estadoTimer.iniciadoEm || new Date().toISOString(),
+      finalizadoEm: new Date().toISOString(),
+      duracaoSegundos: estadoTimer.segundos
+    };
+
+    salvarDadosAluno();
+    delete timers[treino.nome];
+    renderTudo();
+    focarProximoTreino();
+  });
+
+  botoesTreino.appendChild(btnFinalizar);
+  return botoesTreino;
+}
+
+  // Se o treino NÃO foi feito, adiciona o botão de Finalizar Treino ao final
+  if (!feito) {
+    corpo.appendChild(criarBotaoFinalizar(treino));
+    setTimeout(validarEAtualizarBotao, 0);
+  }
 
   return corpo;
 }
