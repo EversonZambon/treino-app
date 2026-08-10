@@ -3,8 +3,8 @@
 // IDs são sequenciais e únicos — se for referenciar um exercício em algum
 // treino (alunos.js), use o "id" dele aqui.
 
-const caminhoIcones = "icones/";
-const caminhoGIFS = "gifs/";
+const caminhoIcones = "./icones/";
+const caminhoGIFS = "./gifs/";
 
 const EXERCICIOS = [
 
