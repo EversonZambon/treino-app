@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Treino</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <div id="not-found" hidden>
+    <div class="icone-erro">🔍</div>
+    <h2>Pessoa não encontrada</h2>
+    <p>Verifique se o link contém o parâmetro correto, por exemplo:<br><code>?aluno=maria</code></p>
+  </div>
+
+  <div id="conteudo" hidden>
+    <header id="cabecalho">
+      <p class="saudacao">Bem-vindo(a)</p>
+      <h1 id="nome-aluno"></h1>
+      <p id="data-hora"></p>
+    </header>
+
+    <main id="lista-treinos"></main>
+
+    <div id="acoes-globais" hidden>
+      <button id="btn-limpar-tudo" class="btn-limpar">Limpar tudo</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal de imagem do exercício -->
+<div id="modal-imagem" class="modal" hidden>
+  <div class="modal-conteudo">
+    <button class="modal-fechar" id="fechar-modal-imagem" aria-label="Fechar">&times;</button>
+    <img id="modal-imagem-img" src="" alt="">
+    <p id="modal-imagem-nome"></p>
+  </div>
+</div>
+
+<!-- Modal de confirmação -->
+<div id="modal-confirmar" class="modal" hidden>
+  <div class="modal-conteudo">
+    <p id="modal-confirmar-texto"></p>
+    <div class="modal-botoes">
+      <button id="btn-confirmar-cancelar" class="btn-secundario">Cancelar</button>
+      <button id="btn-confirmar-ok" class="btn-perigo">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!--
+  Dados carregados como <script> (não como fetch de .json) para que o app
+  funcione abrindo o index.html direto no celular, sem precisar de servidor.
+  Todos os alunos ficam em alunos.js — não precisa mexer aqui pra adicionar um novo.
+-->
+<script src="exercicios.js"></script>
+<script src="alunos.js"></script>
+
+<script src="scripts.js"></script>
+</body>
+</html>
