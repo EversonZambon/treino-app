@@ -138,18 +138,6 @@ body {
   padding: 0 16px 14px;
 }
 
-.btn-refazer {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.btn-refazer:active { border-color: var(--orange); }
-
 .corpo-treino {
   padding: 4px 16px 18px;
   border-top: 1px solid var(--border);
@@ -330,6 +318,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.btn-timer svg {
+  display: block;
 }
 
 .timer-row-topo .btn-timer:active {
