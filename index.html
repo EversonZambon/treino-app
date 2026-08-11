@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Meu Treino</title>
+
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -55,10 +60,14 @@
 <!--
   Dados carregados como <script> (não como fetch de .json) para que o app
   funcione abrindo o index.html direto no celular, sem precisar de servidor.
-  Todos os alunos ficam em alunos.js — não precisa mexer aqui pra adicionar um novo.
+
+  Cada aluno tem seu próprio arquivo em /alunos (ex: alunos/regiane.js).
+  Pra adicionar um novo aluno: copie alunos/_molde.js, renomeie, ajuste os
+  dados, e adicione uma linha <script> abaixo apontando pro novo arquivo.
 -->
 <script src="exercicios.js"></script>
-<script src="alunos.js"></script>
+<script src="alunos/regiane.js"></script>
+<script src="alunos/kamila.js"></script>
 
 <script src="scripts.js"></script>
 </body>
