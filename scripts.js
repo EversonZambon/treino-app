@@ -13,6 +13,11 @@ let dadosAluno = null;
 // cronômetros ativos por treino (não persistem entre reloads)
 const timers = {};
 
+// Ícones do timer em SVG (em vez de caracteres Unicode ▶ ⏸, que dependem da
+// fonte do sistema e podem renderizar minúsculos em alguns navegadores/SOs)
+const ICONE_PLAY = '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M4 2.5v11l10-5.5-10-5.5z"/></svg>';
+const ICONE_PAUSE = '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>';
+
 // ---------------------------------------------------------
 // Elementos
 // ---------------------------------------------------------
@@ -58,7 +63,31 @@ function init() {
   aluno = alunoEncontrado;
   dadosAluno = carregarDadosAluno(aluno.nome);
 
+  validarIdsDosAlunos();
   renderTudo();
+}
+
+// Confere se todo id de exercício usado em qualquer treino de qualquer
+// aluno carregado realmente existe em EXERCICIOS. Roda pra todo mundo (não
+// só o aluno da URL), pra pegar erros de digitação antes que virem um
+// "exercício sumiu" silencioso pra alguém. Só avisa no Console — não impede
+// a página de carregar.
+function validarIdsDosAlunos() {
+  const idsValidos = new Set(EXERCICIOS.map(e => e.id));
+
+  Object.entries(window.ALUNOS || {}).forEach(([chaveAluno, dadosAluno]) => {
+    (dadosAluno.treinos || []).forEach(treino => {
+      (treino.exercicios || []).forEach(ex => {
+        if (!idsValidos.has(ex.id)) {
+          console.warn(
+            `[alunos] Id de exercício inexistente: ${ex.id} ` +
+            `(aluno "${chaveAluno}", treino "${treino.nome}"). ` +
+            `Confira se o EX.* usado ainda existe em exercicios.js.`
+          );
+        }
+      });
+    });
+  });
 }
 
 function mostrarNaoEncontrado() {
@@ -220,7 +249,6 @@ function criarCardTreino(treino) {
   cabecalho.className = 'cabecalho-treino';
   cabecalho.innerHTML = `
     <span class="nome-treino">${treino.nome}</span>
-    ${feito ? `<span class="info-feito">${textoTempo}</span>` : ''}
     <span class="chevron">&#9662;</span>
   `;
   card.appendChild(cabecalho);
@@ -230,7 +258,7 @@ function criarCardTreino(treino) {
     const linhaRefazer = document.createElement('div');
     linhaRefazer.className = 'linha-refazer';
     const btnRefazer = document.createElement('button');
-    btnRefazer.className = 'btn-refazer';
+    btnRefazer.className = 'btn-limpar';
     btnRefazer.textContent = 'ZERAR TREINO';
     btnRefazer.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -244,6 +272,10 @@ function criarCardTreino(treino) {
     });
     linhaRefazer.appendChild(btnRefazer);
     card.appendChild(linhaRefazer);
+    const infoTreinoFeito = document.createElement('div');
+    infoTreinoFeito.className = 'cabecalho-treino';
+    infoTreinoFeito.innerHTML = `${feito ? `<span class="info-feito">${textoTempo}</span>` : ''}`;
+    card.appendChild(infoTreinoFeito)
   }
 
   // corpo (exercícios, timer, finalizar)
@@ -304,7 +336,7 @@ function criarTopoTimer(treino, aoAtualizarTimer) {
 
   const btnTimer = document.createElement('button');
   btnTimer.className = 'btn-timer';
-  btnTimer.innerHTML = '&#9658;';
+  btnTimer.innerHTML = ICONE_PLAY;
   btnTimer.setAttribute('aria-label', 'Iniciar cronômetro');
 
   timerRow.appendChild(display);
@@ -315,14 +347,14 @@ function criarTopoTimer(treino, aoAtualizarTimer) {
   }
   const estadoTimer = timers[treino.nome];
   display.textContent = formatarTempo(estadoTimer.segundos);
-  btnTimer.innerHTML = estadoTimer.rodando ? '&#10074;&#10074;' : '&#9658;';
+  btnTimer.innerHTML = estadoTimer.rodando ? ICONE_PAUSE : ICONE_PLAY;
 
   btnTimer.addEventListener('click', () => {
     if (!estadoTimer.iniciadoEm) {
       estadoTimer.iniciadoEm = new Date().toISOString();
     }
     estadoTimer.rodando = !estadoTimer.rodando;
-    btnTimer.innerHTML = estadoTimer.rodando ? '&#10074;&#10074;' : '&#9658;';
+    btnTimer.innerHTML = estadoTimer.rodando ? ICONE_PAUSE : ICONE_PLAY;
 
     if (estadoTimer.rodando) {
       estadoTimer.intervalo = setInterval(() => {
@@ -472,79 +504,6 @@ function criarBotaoFinalizar(treino) {
   }
 
   return corpo;
-}
-
-function criarBlocoTimerEFinalizar(treino, aoAtualizarTimer) {
-  const wrapper = document.createElement('div');
-
-  const timerRow = document.createElement('div');
-  timerRow.className = 'timer-row';
-
-  const display = document.createElement('div');
-  display.className = 'timer-display';
-  display.textContent = '00:00';
-
-  const btnTimer = document.createElement('button');
-  btnTimer.className = 'btn-timer';
-  btnTimer.innerHTML = '&#9658;';
-  btnTimer.setAttribute('aria-label', 'Iniciar cronômetro');
-
-  timerRow.appendChild(display);
-  timerRow.appendChild(btnTimer);
-  wrapper.appendChild(timerRow);
-
-  if (!timers[treino.nome]) {
-    timers[treino.nome] = { segundos: 0, rodando: false, intervalo: null, iniciadoEm: null };
-  }
-  const estadoTimer = timers[treino.nome];
-  display.textContent = formatarTempo(estadoTimer.segundos);
-  btnTimer.innerHTML = estadoTimer.rodando ? '&#10074;&#10074;' : '&#9658;';
-
-  btnTimer.addEventListener('click', () => {
-    if (!estadoTimer.iniciadoEm) {
-      estadoTimer.iniciadoEm = new Date().toISOString();
-    }
-    estadoTimer.rodando = !estadoTimer.rodando;
-    btnTimer.innerHTML = estadoTimer.rodando ? '&#10074;&#10074;' : '&#9658;';
-
-    if (estadoTimer.rodando) {
-      estadoTimer.intervalo = setInterval(() => {
-        estadoTimer.segundos++;
-        display.textContent = formatarTempo(estadoTimer.segundos);
-        aoAtualizarTimer();
-      }, 1000);
-    } else {
-      clearInterval(estadoTimer.intervalo);
-    }
-  });
-
-  const botoesTreino = document.createElement('div');
-  botoesTreino.className = 'botoes-treino';
-
-  const btnFinalizar = document.createElement('button');
-  btnFinalizar.className = 'btn-finalizar';
-  btnFinalizar.textContent = 'Finalizar treino';
-  btnFinalizar.disabled = true;
-
-  btnFinalizar.addEventListener('click', () => {
-    clearInterval(estadoTimer.intervalo);
-    
-    dadosAluno.treinosFeitos[treino.nome] = {
-      iniciadoEm: estadoTimer.iniciadoEm || new Date().toISOString(),
-      finalizadoEm: new Date().toISOString(),
-      duracaoSegundos: estadoTimer.segundos
-    };
-
-    salvarDadosAluno();
-    delete timers[treino.nome];
-    renderTudo();
-    focarProximoTreino();
-  });
-
-  botoesTreino.appendChild(btnFinalizar);
-  wrapper.appendChild(botoesTreino);
-
-  return wrapper;
 }
 
 function focarProximoTreino() {
