@@ -10,14 +10,6 @@ let exercicios = [];
 let aluno = null;
 let dadosAluno = null;
 
-// cronômetros ativos por treino (não persistem entre reloads)
-const timers = {};
-
-// Ícones do timer em SVG (em vez de caracteres Unicode ▶ ⏸, que dependem da
-// fonte do sistema e podem renderizar minúsculos em alguns navegadores/SOs)
-const ICONE_PLAY = '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M4 2.5v11l10-5.5-10-5.5z"/></svg>';
-const ICONE_PAUSE = '<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>';
-
 // ---------------------------------------------------------
 // Elementos
 // ---------------------------------------------------------
@@ -139,25 +131,6 @@ function formatarDataHora(iso) {
   });
 }
 
-function formatarTempo(segundosTotais) {
-  const m = Math.floor(segundosTotais / 60).toString().padStart(2, '0');
-  const s = Math.floor(segundosTotais % 60).toString().padStart(2, '0');
-  return `${m}:${s}`;
-}
-
-function formatarDuracaoExtenso(segundosTotais) {
-  const h = Math.floor(segundosTotais / 3600);
-  const m = Math.floor((segundosTotais % 3600) / 60);
-  const s = segundosTotais % 60;
-
-  const partes = [];
-  if (h > 0) partes.push(`${h}h`);
-  if (m > 0) partes.push(`${m}m`);
-  if (s > 0 || partes.length === 0) partes.push(`${s}s`);
-
-  return partes.join(' ');
-}
-
 function buscarExercicio(id) {
   return exercicios.find(e => e.id === id);
 }
@@ -226,10 +199,10 @@ function atualizarRelogio() {
   const agora = new Date();
   elDataHora.textContent = agora.toLocaleString('pt-BR', {
     weekday: 'long', day: '2-digit', month: 'long',
-    hour: '2-digit', minute: '2-digit'
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
   });
 }
-setInterval(atualizarRelogio, 30000);
+setInterval(atualizarRelogio, 1000);
 
 function criarCardTreino(treino) {
   const feito = dadosAluno.treinosFeitos[treino.nome];
@@ -240,8 +213,7 @@ function criarCardTreino(treino) {
 
   let textoTempo = '';
   if (feito) {
-    const duracaoTexto = feito.duracaoSegundos ? formatarDuracaoExtenso(feito.duracaoSegundos) : null;
-    textoTempo = `Concluído em ${formatarDataHora(feito.finalizadoEm)}${duracaoTexto ? ` (${duracaoTexto})` : ''}`;
+    textoTempo = `Concluído em ${formatarDataHora(feito.finalizadoEm)}`;
   }
 
   // cabeçalho clicável (abre/fecha)
@@ -315,65 +287,11 @@ function criarCorpoTreino(treino) {
       totalMarcados += arr.filter(Boolean).length;
     });
 
-    const estadoTimer = timers[treino.nome];
-    const tempoValido = estadoTimer && estadoTimer.segundos >= 5;
-    const checkboxValido = totalMarcados >= 3;
-
     const btnFinalizar = corpo.querySelector('.btn-finalizar');
     if (btnFinalizar) {
-      btnFinalizar.disabled = !(tempoValido && checkboxValido);
+      btnFinalizar.disabled = totalMarcados < 1;
     }
   };
-
-// Cria o topo do treino com o botão azul de Play e o display do timer
-function criarTopoTimer(treino, aoAtualizarTimer) {
-  const timerRow = document.createElement('div');
-  timerRow.className = 'timer-row-topo';
-
-  const display = document.createElement('div');
-  display.className = 'timer-display';
-  display.textContent = '00:00';
-
-  const btnTimer = document.createElement('button');
-  btnTimer.className = 'btn-timer';
-  btnTimer.innerHTML = ICONE_PLAY;
-  btnTimer.setAttribute('aria-label', 'Iniciar cronômetro');
-
-  timerRow.appendChild(display);
-  timerRow.appendChild(btnTimer);
-
-  if (!timers[treino.nome]) {
-    timers[treino.nome] = { segundos: 0, rodando: false, intervalo: null, iniciadoEm: null };
-  }
-  const estadoTimer = timers[treino.nome];
-  display.textContent = formatarTempo(estadoTimer.segundos);
-  btnTimer.innerHTML = estadoTimer.rodando ? ICONE_PAUSE : ICONE_PLAY;
-
-  btnTimer.addEventListener('click', () => {
-    if (!estadoTimer.iniciadoEm) {
-      estadoTimer.iniciadoEm = new Date().toISOString();
-    }
-    estadoTimer.rodando = !estadoTimer.rodando;
-    btnTimer.innerHTML = estadoTimer.rodando ? ICONE_PAUSE : ICONE_PLAY;
-
-    if (estadoTimer.rodando) {
-      estadoTimer.intervalo = setInterval(() => {
-        estadoTimer.segundos++;
-        display.textContent = formatarTempo(estadoTimer.segundos);
-        aoAtualizarTimer();
-      }, 1000);
-    } else {
-      clearInterval(estadoTimer.intervalo);
-    }
-  });
-
-  return timerRow;
-}
-
-  // Se o treino NÃO foi feito, adiciona o topo com o botão azul do play (timer)
-  if (!feito) {
-    corpo.appendChild(criarTopoTimer(treino, validarEAtualizarBotao));
-  }
 
   treino.exercicios.forEach(exTreino => {
     const info = buscarExercicio(exTreino.id);
@@ -478,17 +396,11 @@ function criarBotaoFinalizar(treino) {
   btnFinalizar.disabled = true;
 
   btnFinalizar.addEventListener('click', () => {
-    const estadoTimer = timers[treino.nome] || { segundos: 0 };
-    if (estadoTimer.intervalo) clearInterval(estadoTimer.intervalo);
-
     dadosAluno.treinosFeitos[treino.nome] = {
-      iniciadoEm: estadoTimer.iniciadoEm || new Date().toISOString(),
-      finalizadoEm: new Date().toISOString(),
-      duracaoSegundos: estadoTimer.segundos
+      finalizadoEm: new Date().toISOString()
     };
 
     salvarDadosAluno();
-    delete timers[treino.nome];
     renderTudo();
     focarProximoTreino();
   });
